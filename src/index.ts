@@ -1,5 +1,6 @@
 import mongoose from "mongoose"
 import type {NextFunction, Request, Response} from "express"
+import {walk} from "./util";
 
 
 type OptionalConfig = {
@@ -45,6 +46,7 @@ class Pool {
     #add(origin: string) {
         const conn = mongoose.createConnection(`${this.#mongoURI}/${origin}`)
         this.#connections.set(origin, conn);
+        walk("yay")
     }
 
     async connect(origin: string): Promise<mongoose.Connection> {
