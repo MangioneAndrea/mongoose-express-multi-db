@@ -1,6 +1,6 @@
-import mongoose, {Schema} from "mongoose";
+const mongoose = require("mongoose");
 
-const JsSchema = new Schema({
+const JsSchema = new mongoose.Schema({
     example: {
         type: String
     }
@@ -8,4 +8,4 @@ const JsSchema = new Schema({
 
 const JsModel = mongoose.model("Js", JsSchema);
 
-export default JsModel;
+module.exports = JsModel;

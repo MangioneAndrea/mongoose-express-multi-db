@@ -5,7 +5,6 @@ const SimpleSchema = new Schema({
         type: String
     }
 })
-
 const SimpleModel = mongoose.model("Simple", SimpleSchema);
 
 export default SimpleModel;
