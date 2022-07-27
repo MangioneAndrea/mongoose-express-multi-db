@@ -1,0 +1,7 @@
+node_modules
+test
+.github
+.gitignore
+.pnpm-lock.yaml
+tsconfig.json
+.idea
