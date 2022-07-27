@@ -1,6 +1,8 @@
 import * as fs from "fs"
 import * as  path from "path"
 
+
+/** @internal */
 export const walk = function (dir: string | Array<string>): Array<string> {
 
     if (Array.isArray(dir)) return dir.map(walk).flat(1);
@@ -19,6 +21,7 @@ export const walk = function (dir: string | Array<string>): Array<string> {
     return results;
 };
 
+/** @internal */
 export const fileHasMongooseDeclaration = (filePath: string): boolean => {
     const file: string = fs.readFileSync(filePath).toString()
     return ["mongoose", "Schema", "new", "export"].every(str => file.includes(str))

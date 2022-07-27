@@ -8,18 +8,18 @@ type OptionalConfig = {
     reconnectInterval?: number,
     maxPoolSize?: number,
     minPoolSize?: number,
-    getOrigin?: (req: Request) => string
+    getDBName?: (req: Request) => string
 }
 
 type RequiredConfig = {
-    mongoUri: `${"mongodb://" | "mongodb+srv://"}${string}`,
+    mongoUri: string,
     modelsPaths: string | Array<string>,
 }
 
 type Config = Required<OptionalConfig> & RequiredConfig
 
 const defaultConfig: Required<OptionalConfig> = {
-    getOrigin(req: Request): string {
+    getDBName(req: Request): string {
         return req?.headers?.origin ?? "localhost";
     },
     maxPoolSize: 500,
@@ -29,6 +29,16 @@ const defaultConfig: Required<OptionalConfig> = {
 }
 
 export class Tenant {
+
+    /** @internal */
+    readonly #connection: mongoose.Connection
+
+    /** @internal */
+    readonly #models: Map<string, Model<any>>
+
+    /** @internal */
+    readonly #name: string
+
     get name(): string {
         return this.#name;
     }
@@ -40,10 +50,6 @@ export class Tenant {
     get connection(): mongoose.Connection {
         return this.#connection;
     }
-
-    readonly #connection: mongoose.Connection
-    readonly #models: Map<string, Model<any>>
-    readonly #name: string
 
     constructor(name: string, connection: mongoose.Connection, schemas: Map<string, Schema>) {
         this.#connection = connection
@@ -110,7 +116,7 @@ const Middleware = (configs: OptionalConfig & RequiredConfig) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
             await pool.isReady
-            const origin = finalConfigs.getOrigin(req);
+            const origin = finalConfigs.getDBName(req);
             const tenant = await pool.connect(origin, finalConfigs)
             Object.assign(req, {tenant})
             return next();

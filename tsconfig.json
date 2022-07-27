@@ -5,8 +5,13 @@
     "outDir": "dist",
     "strict": true,
     "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "stripInternal": true
   },
   "include": [
     "src/index.ts"
+  ],
+  "exclude": [
+    "src/util.ts"
   ]
 }
