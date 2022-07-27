@@ -1,6 +1,6 @@
-import mongoose from "mongoose"
+import mongoose, {Model, Schema} from "mongoose"
 import type {NextFunction, Request, Response} from "express"
-import {walk} from "./util";
+import {fileHasMongooseDeclaration, walk} from "./util";
 
 
 type OptionalConfig = {
@@ -29,13 +29,24 @@ const defaultConfig: Required<OptionalConfig> = {
 }
 
 class Pool {
-    #connections: Map<string, mongoose.Connection> = new Map();
     readonly #mongoURI: string
-    readonly #modelsPaths: string | Array<string>
+    #schemas: Map<string, Schema> = new Map();
+    #ready = false;
+    #connections: Map<string, mongoose.Connection> = new Map();
 
     constructor(configs: RequiredConfig) {
         this.#mongoURI = configs.mongoUri
-        this.#modelsPaths = configs.modelsPaths
+        this.#initModels(configs.modelsPaths).then(() => this.#ready = true)
+    }
+
+    async #initModels(paths: Array<string> | string) {
+        const files = walk(paths).filter(fileHasMongooseDeclaration)
+
+        for (const file of files) {
+            const model = (await import(file)) as Model<any>
+            let {schema, modelName} = model
+            this.#schemas.set(modelName, schema)
+        }
     }
 
 
@@ -43,15 +54,17 @@ class Pool {
         return this.#connections.has(origin)
     }
 
-    #add(origin: string) {
+    async #add(origin: string) {
         const conn = mongoose.createConnection(`${this.#mongoURI}/${origin}`)
         this.#connections.set(origin, conn);
-        walk("yay")
+        for (const [name, schema] of this.#schemas) {
+            conn.model(name, schema);
+        }
     }
 
     async connect(origin: string): Promise<mongoose.Connection> {
         if (!this.#has(origin)) {
-            this.#add(origin);
+            await this.#add(origin);
         }
         return this.#connections.get(origin) as mongoose.Connection;
     }
@@ -65,7 +78,6 @@ const Middleware = (configs: OptionalConfig & RequiredConfig) => {
         const origin = finalConfigs.getOrigin(req);
         const tenant = await pool.connect(origin)
         Object.assign(req, {tenant})
-
         return next();
     }
 }
