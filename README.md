@@ -1,4 +1,4 @@
-# mongoose-multi-db
+# mongoose-express-multi-db
 
 > :warning: Even if I'm actively working on it, the library is still in beta. Use it at your own risk
 
@@ -11,7 +11,7 @@ For multitenant projects you might have the need to have multiple connections to
 #### simple
 The following example will get the db name from the origin and apply it to search for the db. (in this case it will be the db `localhost`)
 ```javascript
-    const mongooseMiddleware = require("mongoose-multi-db")
+    const mongooseMiddleware = require("mongoose-express-multi-db")
 
     ...
 
@@ -30,7 +30,7 @@ The following example will get the db name from the origin and apply it to searc
 #### db depends on something else
 This example shows how the db can be chosen by different factors like a jwt token if you have always the same origin :). Here you can also verify that no other db is being accessed (you should always watch out nobody touches the admin db!)
 ```javascript
-    const mongooseMiddleware = require("mongoose-multi-db")
+    const mongooseMiddleware = require("mongoose-express-multi-db")
     const jwt = require('jsonwebtoken')
         
     ...
@@ -52,7 +52,7 @@ This example shows how the db can be chosen by different factors like a jwt toke
 #### express ends before the server closes (avoid memory leaks)
 If you are testing the functions the connections should be closed before opening them again. This is a common issue with jest or mocha. So just write something like this
 ```javascript
-    const mongooseMiddleware, {killMiddlewareConnections} = require("mongoose-multi-db")
+    const mongooseMiddleware, {killMiddlewareConnections} = require("mongoose-express-multi-db")
 
     ...
 
@@ -70,7 +70,7 @@ If you are testing the functions the connections should be closed before opening
 In order to get typings you need to define what models do what. You might put the `type KnownModels` in a separate file. You have to update it each time you need it in order not to have type errors
 ```ts
 
-import mongooseMiddleware, {Tenant} from "mongoose-multi-db"
+import mongooseMiddleware, {Tenant} from "mongoose-express-multi-db"
 ...
 
 // You can use the type or the type of the model, it has the same result

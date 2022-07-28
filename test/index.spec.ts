@@ -33,7 +33,7 @@ const exampleServer = () => new Promise<express.Express>(async (resolve) => {
 
     app.use(mongooseMiddleware({
         mongoUri: uri,
-        modelsPaths: "C:\\Users\\andre\\Documents\\github.com\\MangioneAndrea\\mongoose-multi-db\\test\\models"
+        modelsPaths: "C:\\Users\\andre\\Documents\\github.com\\MangioneAndrea\\mongoose-express-multi-db\\test\\models"
     }))
 
 
