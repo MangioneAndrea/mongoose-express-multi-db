@@ -4,12 +4,25 @@ import {strict as assert} from "assert";
 import {Server} from "http"
 import mongoose from "mongoose";
 import {MongoMemoryServer} from 'mongodb-memory-server';
+import type Simple from "./models/SimpleModel"
 
 
 import mongooseMiddleware, {Tenant} from "../src"
 
 
 let server: Server;
+
+type KnownModels = {
+    Simple: typeof Simple
+}
+
+declare global {
+    namespace Express {
+        interface Request {
+            tenant: Tenant<KnownModels>
+        }
+    }
+}
 
 const exampleServer = () => new Promise<express.Express>(async (resolve) => {
     const mongod = await MongoMemoryServer.create();
@@ -25,7 +38,6 @@ const exampleServer = () => new Promise<express.Express>(async (resolve) => {
 
     server = app.listen("43826", () => resolve(app));
 })
-
 const getInsideRequest = (app: express.Express) => new Promise<[req: express.Request, res: express.Response]>(async (resolve) => {
     app.get("/example", (req, res) => {
         resolve([req, res])
@@ -34,12 +46,12 @@ const getInsideRequest = (app: express.Express) => new Promise<[req: express.Req
 })
 
 let app: express.Express
-let req: express.Request & { tenant: Tenant }
+let req: express.Request
 let res: express.Response
+
 
 before(async () => {
     app = await exampleServer();
-    // @ts-ignore
     [req, res] = await getInsideRequest(app);
 })
 
@@ -58,6 +70,12 @@ it("has the js model", async () => {
 })
 it("has the nested model", async () => {
     assert(req.tenant.models.has("Nested"))
+})
+
+
+it("has compiled the simple model, so findOne is defined", async () => {
+    const el=await req.tenant.getModel("Simple").findOne().lean()
+    assert(req.tenant.getModel("Simple").findOne)
 })
 
 

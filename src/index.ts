@@ -4,11 +4,8 @@ import {fileHasMongooseDeclaration, walk} from "./util";
 
 
 type OptionalConfig = {
-    reconnectTries?: number,
-    reconnectInterval?: number,
-    maxPoolSize?: number,
-    minPoolSize?: number,
-    getDBName?: (req: Request) => string
+    getDBName?: (req: Request) => string,
+    connectOptions?: mongoose.ConnectOptions
 }
 
 type RequiredConfig = {
@@ -16,19 +13,20 @@ type RequiredConfig = {
     modelsPaths: string | Array<string>,
 }
 
-type Config = Required<OptionalConfig> & RequiredConfig
+type Config = OptionalConfig & RequiredConfig
 
 const defaultConfig: Required<OptionalConfig> = {
     getDBName(req: Request): string {
         return req?.headers?.origin ?? "localhost";
     },
-    maxPoolSize: 500,
-    minPoolSize: 1,
-    reconnectInterval: 100,
-    reconnectTries: 5
+    connectOptions: {}
 }
 
-export class Tenant {
+interface KnownModels {
+    [key: string]: any
+}
+
+export class Tenant<T extends KnownModels = {}> {
 
     /** @internal */
     readonly #connection: mongoose.Connection
@@ -47,6 +45,11 @@ export class Tenant {
         return this.#models;
     }
 
+    getModel<K extends keyof T>(modelName: K): Model<T[K]>
+    getModel(modelName: string): Model<any> | undefined {
+        return this.models.get(modelName)
+    }
+
     get connection(): mongoose.Connection {
         return this.#connection;
     }
@@ -63,14 +66,14 @@ export class Tenant {
 }
 
 
-class Pool {
+class Pool<T extends KnownModels> {
     readonly #mongoURI: string
     #schemas: Map<string, Schema> = new Map()
     #setReady: undefined | { resolve: (() => boolean), reject: ((e: Error) => Error) };
     readonly isReady = new Promise((resolve: () => boolean, reject: (e: Error) => Error) => {
         this.#setReady = {resolve, reject};
     });
-    #tenants: Map<string, Tenant> = new Map();
+    #tenants: Map<string, Tenant<T>> = new Map();
 
     constructor(configs: RequiredConfig) {
         this.#mongoURI = configs.mongoUri.replace(/\/$/, "")
@@ -101,23 +104,24 @@ class Pool {
         this.#tenants.set(origin, new Tenant(origin, connection, this.#schemas));
     }
 
-    async connect(origin: string, options: ConnectOptions): Promise<Tenant> {
+    async connect(origin: string, options: ConnectOptions): Promise<Tenant<T>> {
         if (!this.#has(origin)) {
             await this.#add(origin, options);
         }
-        return this.#tenants.get(origin) as Tenant;
+        return this.#tenants.get(origin) as Tenant<T>;
     }
 }
 
-const Middleware = (configs: OptionalConfig & RequiredConfig) => {
-    const finalConfigs: Config = {...defaultConfig, ...configs}
+const Middleware = <T extends KnownModels>(configs: Config) => {
+    const finalConfigs: Required<Config> = {...defaultConfig, ...configs}
     const pool = new Pool(configs)
+
 
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
             await pool.isReady
             const origin = finalConfigs.getDBName(req);
-            const tenant = await pool.connect(origin, finalConfigs)
+            const tenant = await pool.connect(origin, finalConfigs.connectOptions)
             Object.assign(req, {tenant})
             return next();
         } catch (e) {

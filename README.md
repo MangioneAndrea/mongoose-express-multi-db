@@ -19,7 +19,7 @@ The following example will get the db name from the origin and apply it to searc
 
     app.get("/user", (req, res)=>{
         const myCoolId = ...
-        const user = req.tenant.models["users"].findOne({_id: myCoolId}).lean()
+        const user = req.tenant.getModel("users").findOne({_id: myCoolId}).lean()
         res.json(user)
     })
 ```
