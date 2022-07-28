@@ -5,6 +5,16 @@
 ## motivation
 For multitenant projects you might have the need to have multiple connections to a mongoDB instance where each tenant has its own database. Sadly mongoose does not allow this, as it does not allow reusing a connection for different databases. With the native mongoDB client it's not an issue at all. Using mongoose makes it insanely hard to do!
 
+## Installation
+
+This is a [Node.js](https://nodejs.org/en/) module available through the
+[npm registry](https://www.npmjs.com/).
+
+Installation is done by running
+```console
+$ npm install mongoose-express-multi-db
+```
+
 ## Usage
 ### JS
 
