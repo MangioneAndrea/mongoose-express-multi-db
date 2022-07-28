@@ -4,16 +4,17 @@ import {strict as assert} from "assert";
 import {Server} from "http"
 import mongoose from "mongoose";
 import {MongoMemoryServer} from 'mongodb-memory-server';
-import type Simple from "./models/SimpleModel"
 
-
+import type Simple from "./models/SimpleModel";
+import {ExportingType} from "./models/ExportingTypeModel"
 import mongooseMiddleware, {Tenant} from "../src"
 
 
 let server: Server;
 
 type KnownModels = {
-    Simple: typeof Simple
+    Simple: typeof Simple,
+    ExportingType: ExportingType
 }
 
 declare global {
@@ -74,8 +75,17 @@ it("has the nested model", async () => {
 
 
 it("has compiled the simple model, so findOne is defined", async () => {
-    const el=await req.tenant.getModel("Simple").findOne().lean()
     assert(req.tenant.getModel("Simple").findOne)
+})
+
+it("compiles with the element type if the given type is a model", async () => {
+    const el = await req.tenant.getModel("Simple").findOne().lean()
+    el?._id
+})
+
+it("compiles with the element type if the given type is a model", async () => {
+    const el = await req.tenant.getModel("ExportingType").findOne().lean()
+    el?._id
 })
 
 
@@ -83,5 +93,6 @@ after(() => {
     Object.keys(mongoose.models).forEach((m) => {
         delete mongoose.models[m]
     })
-    server?.close();
+    mongoose.connection.close()
+    server.close();
 })

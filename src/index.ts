@@ -1,5 +1,7 @@
 import mongoose, {ConnectOptions, Model, Promise, Schema} from "mongoose"
 import type {NextFunction, Request, Response} from "express"
+import {Server} from "http"
+
 import {fileHasMongooseDeclaration, walk} from "./util";
 
 
@@ -22,8 +24,9 @@ const defaultConfig: Required<OptionalConfig> = {
     connectOptions: {}
 }
 
+
 interface KnownModels {
-    [key: string]: any
+    [key: string]: Model<any> | any
 }
 
 export class Tenant<T extends KnownModels = {}> {
@@ -45,7 +48,7 @@ export class Tenant<T extends KnownModels = {}> {
         return this.#models;
     }
 
-    getModel<K extends keyof T>(modelName: K): Model<T[K]>
+    getModel<K extends keyof T, C extends T[K]>(modelName: K): Model<C extends Model<infer N> ? N : T[K]>;
     getModel(modelName: string): Model<any> | undefined {
         return this.models.get(modelName)
     }
@@ -119,6 +122,9 @@ const Middleware = <T extends KnownModels>(configs: Config) => {
 
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
+            // @ts-ignore
+            const server: Server = req.connection.server
+            server.on("close", () => console.log("closing"))
             await pool.isReady
             const origin = finalConfigs.getDBName(req);
             const tenant = await pool.connect(origin, finalConfigs.connectOptions)
