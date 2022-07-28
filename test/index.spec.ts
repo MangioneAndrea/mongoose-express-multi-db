@@ -1,16 +1,17 @@
 import * as express from "express"
 import * as request from 'supertest';
 import {strict as assert} from "assert";
-import {Server} from "http"
+import type {Server} from "http"
 import mongoose from "mongoose";
 import {MongoMemoryServer} from 'mongodb-memory-server';
 
 import type Simple from "./models/SimpleModel";
 import {ExportingType} from "./models/ExportingTypeModel"
-import mongooseMiddleware, {Tenant} from "../src"
+import mongooseMiddleware, {Tenant, killMiddlewareConnections} from "../src"
 
 
 let server: Server;
+let mongod: MongoMemoryServer
 
 type KnownModels = {
     Simple: typeof Simple,
@@ -24,20 +25,20 @@ declare global {
         }
     }
 }
-
 const exampleServer = () => new Promise<express.Express>(async (resolve) => {
-    const mongod = await MongoMemoryServer.create();
+    mongod = await MongoMemoryServer.create();
 
     const uri = mongod.getUri();
     const app = express()
+
     app.use(mongooseMiddleware({
-        // @ts-ignore
         mongoUri: uri,
         modelsPaths: "C:\\Users\\andre\\Documents\\github.com\\MangioneAndrea\\mongoose-multi-db\\test\\models"
     }))
 
 
     server = app.listen("43826", () => resolve(app));
+    server.addListener("close", () => killMiddlewareConnections(app).catch(console.error))
 })
 const getInsideRequest = (app: express.Express) => new Promise<[req: express.Request, res: express.Response]>(async (resolve) => {
     app.get("/example", (req, res) => {
@@ -57,24 +58,24 @@ before(async () => {
 })
 
 
-it("has the tenant in the request", async () => {
+it("has the tenant in the request", () => {
     assert("tenant" in req)
 })
-it("resolves the name as localhost", async () => {
+it("resolves the name as localhost", () => {
     assert.equal(req.tenant.name, "localhost")
 })
-it("has the simple model", async () => {
+it("has the simple model", () => {
     assert(req.tenant.models.has("Simple"))
 })
-it("has the js model", async () => {
+it("has the js model", () => {
     assert(req.tenant.models.has("Js"))
 })
-it("has the nested model", async () => {
+it("has the nested model", () => {
     assert(req.tenant.models.has("Nested"))
 })
 
 
-it("has compiled the simple model, so findOne is defined", async () => {
+it("has compiled the simple model, so findOne is defined", () => {
     assert(req.tenant.getModel("Simple").findOne)
 })
 
@@ -90,9 +91,11 @@ it("compiles with the element type if the given type is a model", async () => {
 
 
 after(() => {
+    res.end()
+    mongoose.disconnect()
     Object.keys(mongoose.models).forEach((m) => {
         delete mongoose.models[m]
     })
-    mongoose.connection.close()
-    server.close();
+    server.close(console.error);
+    mongod.stop({doCleanup: true, force: true}).finally(console.error)
 })

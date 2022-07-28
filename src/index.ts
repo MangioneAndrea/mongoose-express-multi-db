@@ -1,6 +1,5 @@
 import mongoose, {ConnectOptions, Model, Promise, Schema} from "mongoose"
-import type {NextFunction, Request, Response} from "express"
-import {Server} from "http"
+import type {Express, NextFunction, Request, Response} from "express"
 
 import {fileHasMongooseDeclaration, walk} from "./util";
 
@@ -12,7 +11,7 @@ type OptionalConfig = {
 
 type RequiredConfig = {
     mongoUri: string,
-    modelsPaths: string | Array<string>,
+    modelsPaths: string | Array<string>
 }
 
 type Config = OptionalConfig & RequiredConfig
@@ -102,6 +101,11 @@ class Pool<T extends KnownModels> {
         return this.#tenants.has(origin)
     }
 
+    async clear() {
+        const res = await Promise.all(Array.from(this.#tenants.values()).map(tenant => tenant.connection.close(true)))
+        this.#tenants.clear()
+    }
+
     async #add(origin: string, options: ConnectOptions) {
         const connection = await mongoose.createConnection(`${this.#mongoURI}/${origin}`, {}).asPromise()
         this.#tenants.set(origin, new Tenant(origin, connection, this.#schemas));
@@ -115,16 +119,14 @@ class Pool<T extends KnownModels> {
     }
 }
 
-const Middleware = <T extends KnownModels>(configs: Config) => {
+
+const middleware = <T extends KnownModels>(configs: Config) => {
     const finalConfigs: Required<Config> = {...defaultConfig, ...configs}
     const pool = new Pool(configs)
 
 
-    return async (req: Request, res: Response, next: NextFunction) => {
+    async function MongooseMultiDBMiddleware(req: Request, res: Response, next: NextFunction) {
         try {
-            // @ts-ignore
-            const server: Server = req.connection.server
-            server.on("close", () => console.log("closing"))
             await pool.isReady
             const origin = finalConfigs.getDBName(req);
             const tenant = await pool.connect(origin, finalConfigs.connectOptions)
@@ -134,7 +136,17 @@ const Middleware = <T extends KnownModels>(configs: Config) => {
             next(e)
         }
     }
+
+    MongooseMultiDBMiddleware.pool = pool;
+
+    return MongooseMultiDBMiddleware
+}
+
+export const killMiddlewareConnections = async (app: Express) => {
+    const middleware = (app.stack || app._router.stack).find((el) => el.name === "MongooseMultiDBMiddleware");
+    if (!middleware) return;
+    await middleware.handle.pool.clear()
 }
 
 
-export default Middleware
+export default middleware
