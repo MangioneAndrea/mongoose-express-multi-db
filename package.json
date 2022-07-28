@@ -1,6 +1,6 @@
 {
   "name": "mongoose-multi-db",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "mongoose express middleware to allow multiple connections depending on the origin",
   "main": "dist/index.js",
   "scripts": {
