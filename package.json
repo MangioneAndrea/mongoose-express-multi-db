@@ -25,5 +25,10 @@
   "peerDependencies": {
     "express": "*",
     "mongoose": "*"
+  },
+  "homepage": "https://github.com/MangioneAndrea/mongoose-express-multi-db",
+  "repository": "https://github.com/MangioneAndrea/mongoose-express-multi-db",
+  "bugs": {
+    "url": "https://github.com/MangioneAndrea/mongoose-express-multi-db/issues"
   }
 }
