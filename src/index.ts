@@ -66,9 +66,16 @@ export class Tenant<T extends KnownModels = {}> {
 
     /**
      * Get reference to model. The string defined in the models will provide typings
+     *
      * @see KnownModels
+     *
+     *
+     * T is the set of Models or Schemas
+     * K is a key of the Models
+     * T[K] is the Model or schema
+     * The function always return the Schema type
      */
-    getModel<K extends keyof T, C extends T[K]>(modelName: K): Model<C extends Model<infer N> ? N : T[K]>;
+    getModel<K extends keyof T>(modelName: K): Model<T[K] extends Model<infer N> ? N : T[K]>;
     getModel(modelName: string): Model<any> | undefined {
         return this.models.get(modelName)
     }
