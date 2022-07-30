@@ -56,27 +56,13 @@ interface KnownModels {
 export class Tenant<T extends KnownModels = {}> {
 
     /** @internal */
-    readonly #connection: mongoose.Connection
+    readonly connection: mongoose.Connection
 
     /** @internal */
-    readonly #models: Map<string, Model<any>>
+    readonly models: Map<string, Model<any>>
 
     /** @internal */
-    readonly #name: string
-
-    /**
-     * Name of the database
-     */
-    get name(): string {
-        return this.#name;
-    }
-
-    /**
-     * Map of all found models
-     */
-    get models(): Map<string, Model<any>> {
-        return this.#models;
-    }
+    readonly name: string
 
     /**
      * Get reference to model. The string defined in the models will provide typings
@@ -87,22 +73,16 @@ export class Tenant<T extends KnownModels = {}> {
         return this.models.get(modelName)
     }
 
-    /**
-     * Native mongoose connection
-     */
-    get connection(): mongoose.Connection {
-        return this.#connection;
-    }
 
     /** @internal  */
     constructor(name: string, connection: mongoose.Connection, schemas: Map<string, Schema>) {
-        this.#connection = connection
-        this.#name = name;
+        this.connection = connection
+        this.name = name;
         const models = new Map<string, Model<any>>;
         for (const [name, schema] of schemas) {
             models.set(name, connection.model(name, schema));
         }
-        this.#models = models;
+        this.models = models;
     }
 }
 
