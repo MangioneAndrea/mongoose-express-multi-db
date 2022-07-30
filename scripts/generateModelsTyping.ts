@@ -6,7 +6,7 @@ const [, , modelsPath, outputFile] = process.argv;
 
 const allImports = walk(modelsPath).filter(fileHasMongooseDeclaration)
     .map(p => p.replace(process.cwd(), "")
-        .replaceAll("\\", "/")
+        .replace(/\\/g, "/")
         .replace(/^\//, "./")
     ).map(
         (path) => {
