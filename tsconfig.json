@@ -6,8 +6,7 @@
     "strict": true,
     "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "stripInternal": true,
-    "esModuleInterop": true
+    "stripInternal": true
   },
   "include": [
     "src/index.ts"

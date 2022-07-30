@@ -197,8 +197,11 @@ const middleware = <T extends KnownModels>(configs: Config) => {
         }
     }
 
-    // This reference is used to cleanup
-    MongooseMultiDBMiddleware.pool = pool;
+    /**
+     * This reference is used to cleanup
+     * @internal
+     */
+    MongooseMultiDBMiddleware.clear = () => pool.clear();
 
     return MongooseMultiDBMiddleware
 }
@@ -211,7 +214,7 @@ export const killMiddlewareConnections = async (app: Express) => {
     const middleware = (app.stack || app._router.stack).find((el) => el.name === "MongooseMultiDBMiddleware");
     // Do not throw errors if the middleware was not (yet) applied
     if (!middleware) return;
-    await middleware.handle.pool.clear()
+    await middleware.handle.clear()
 }
 
 

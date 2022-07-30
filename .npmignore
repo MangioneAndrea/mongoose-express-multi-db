@@ -5,3 +5,5 @@ test
 .pnpm-lock.yaml
 tsconfig.json
 .idea
+
+src/**/*.js
