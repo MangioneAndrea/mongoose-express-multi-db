@@ -140,7 +140,7 @@ class Pool<T extends KnownModels> {
 
     /** @internal  */
     async #add(origin: string, options: ConnectOptions) {
-        const connection = await mongoose.createConnection(`${this.#mongoURI}/${origin}`, {}).asPromise()
+        const connection = await mongoose.createConnection(`${this.#mongoURI}/${origin}`, options).asPromise()
         this.#tenants.set(origin, new Tenant(origin, connection, this.#schemas));
     }
 
