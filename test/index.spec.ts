@@ -36,10 +36,11 @@ const exampleServer = () => new Promise<express.Express>(async (resolve) => {
         modelsPaths: __dirname + "/models"
     }))
 
-
     server = app.listen("43826", () => resolve(app));
     server.addListener("close", () => killMiddlewareConnections(app).catch(console.error))
 })
+
+// Create a long term request to be killed at the end of thetests
 const getInsideRequest = (app: express.Express) => new Promise<[req: express.Request, res: express.Response]>(async (resolve) => {
     app.get("/example", (req, res) => {
         resolve([req, res])
@@ -91,11 +92,14 @@ it("compiles with the element type if the given type is a model", async () => {
 
 
 after(() => {
+    // Close the express request
     res.end()
-    mongoose.disconnect()
+    // Clear mongoose references when running test:dev
     Object.keys(mongoose.models).forEach((m) => {
         delete mongoose.models[m]
     })
+    // Stop listening to requests
     server.close(console.error);
+    // Kill mongodb
     mongod.stop({doCleanup: true, force: true}).finally(console.error)
 })

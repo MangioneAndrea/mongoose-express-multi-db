@@ -134,7 +134,7 @@ class Pool<T extends KnownModels> {
 
     /** @internal  */
     async clear() {
-        const res = await Promise.all(Array.from(this.#tenants.values()).map(tenant => tenant.connection.close(true)))
+        await Promise.all(Array.from(this.#tenants.values()).map(tenant => tenant.connection.close(true)))
         this.#tenants.clear()
     }
 
