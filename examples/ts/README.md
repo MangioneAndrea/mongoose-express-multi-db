@@ -1,6 +1,6 @@
-# simple example
+# TS example
 
-This example uses just js with a super simple model
+This example uses just TS with a super simple model. Basically the same thing as in the simple example. Now you got autocomplete!
 
 ## Install
 

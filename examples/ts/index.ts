@@ -1,6 +1,16 @@
-const express = require("express")
-const bp = require("body-parser");
-const mongooseMiddleware = require("mongoose-express-multi-db").default
+import * as express from "express";
+import * as bp from "body-parser" ;
+import mongooseMiddleware, {Tenant} from "mongoose-express-multi-db"
+import KnownModels from "./models";
+
+declare global {
+    namespace Express {
+        interface Request {
+            tenant: Tenant<KnownModels>
+        }
+    }
+}
+
 const app = express();
 
 const URI = "mongodb://localhost:27017"
@@ -12,6 +22,7 @@ app.use(mongooseMiddleware({
     modelsPaths: __dirname + "/models"
 }))
 
+
 app.post("/user", async (req, res) => {
     try {
         const {firstname, lastname} = req.body;
@@ -19,20 +30,20 @@ app.post("/user", async (req, res) => {
         res.json({_id})
 
     } catch (error) {
-        res.json({error: error.message})
+        res.json({error: (error as Error).message})
     }
 })
 
 app.get("/user", async (req, res) => {
     try {
-        const {_id} = req.query;
+        const {_id} = req.query as { _id: string };
         const user = await req.tenant.getModel("Users").findById(_id).lean()
         res.json({user})
     } catch (error) {
-        res.json({error: error.message})
+        res.json({error: (error as Error).message})
     }
 })
 
-server = app.listen("1234", () => {
+app.listen("1234", () => {
     console.log(`App listening under ${PORT}`)
 });
