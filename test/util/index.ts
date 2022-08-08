@@ -3,7 +3,7 @@ import * as http from "http";
 import {MongoMemoryServer} from "mongodb-memory-server";
 import mongooseMiddleware, {killMiddlewareConnections} from "../../src";
 import * as request from "supertest";
-import mongoose, {Error} from "mongoose";
+import mongoose from "mongoose";
 
 let Port = 4001
 
@@ -34,15 +34,15 @@ export const exampleServer = (ensureDbExists = false) => new Promise<[MongoMemor
 
 // Create a long term request to be killed at the end of thetests
 export const createOpenGetRequest: (app: express.Express) => Promise<[req: express.Request, res: express.Response]> = (app) => new Promise(async (resolve, reject) => {
-
     app.get("/example", (req, res) => {
         resolve([req, res])
     })
-    await request(app).get("/example").then(({error, res}) => {
+
+    const getRequest = request(app).get("/example")
+    // @ts-ignore
+    await getRequest.then(({error, res}) => {
         if (error) {
-            console.log(res)
             reject(error)
-            killReferences(res)
         }
     })
 })
