@@ -8,7 +8,11 @@ import {fileHasMongooseDeclaration, walk} from "./util";
  */
 type OptionalConfig = {
     getDBName?: (req: Request) => string,
-    connectOptions?: mongoose.ConnectOptions
+    connectOptions?: ConnectOptions,
+    /**
+     * Throws an error if a connection requires a DB which does not exist
+     */
+    ensureDbExists?: boolean
 }
 /**
  * Required configuration for the package
@@ -39,7 +43,11 @@ const defaultConfig: Required<OptionalConfig> = {
     /**
      * No connectOptions
      */
-    connectOptions: {}
+    connectOptions: {},
+    /**
+     * By default, the db might not exist
+     */
+    ensureDbExists: false,
 }
 
 /**
@@ -111,10 +119,12 @@ class Pool<T extends KnownModels> {
     });
     /** @internal  */
     #tenants: Map<string, Tenant<T>> = new Map();
+    #configs: Required<Config>
 
     /** @internal  */
-    constructor(configs: RequiredConfig) {
+    constructor(configs: Required<Config>) {
         this.#mongoURI = configs.mongoUri.replace(/\/$/, "")
+        this.#configs = configs
         this.#initModels(configs.modelsPaths).then(() => {
             this.#setReady?.resolve()
         }).catch((e) => {
@@ -146,17 +156,21 @@ class Pool<T extends KnownModels> {
     }
 
     /** @internal  */
-    async #add(origin: string, options: ConnectOptions) {
-        const connection = await mongoose.createConnection(`${this.#mongoURI}/${origin}`, options).asPromise()
-        this.#tenants.set(origin, new Tenant(origin, connection, this.#schemas));
+    async #add(db: string) {
+        const connection = await mongoose.createConnection(`${this.#mongoURI}/${db}`, this.#configs.connectOptions || {}).asPromise()
+        if (this.#configs.ensureDbExists) {
+            const dbs = await connection.db.admin().listDatabases();
+            if (!dbs.databases.some(({name}) => name === db)) throw new Error(`DB ${db} does not exist`)
+        }
+        this.#tenants.set(db, new Tenant(db, connection, this.#schemas));
     }
 
     /** @internal  */
-    async connect(origin: string, options: ConnectOptions): Promise<Tenant<T>> {
-        if (!this.#has(origin)) {
-            await this.#add(origin, options);
+    async connect(db: string): Promise<Tenant<T>> {
+        if (!this.#has(db)) {
+            await this.#add(db);
         }
-        return this.#tenants.get(origin) as Tenant<T>;
+        return this.#tenants.get(db) as Tenant<T>;
     }
 }
 
@@ -166,7 +180,7 @@ class Pool<T extends KnownModels> {
  */
 const middleware = <T extends KnownModels>(configs: Config) => {
     const finalConfigs: Required<Config> = {...defaultConfig, ...configs}
-    const pool = new Pool(configs)
+    const pool = new Pool(finalConfigs)
 
 
     /**
@@ -175,8 +189,8 @@ const middleware = <T extends KnownModels>(configs: Config) => {
     async function MongooseMultiDBMiddleware(req: Request, res: Response, next: NextFunction) {
         try {
             await pool.isReady
-            const origin = finalConfigs.getDBName(req);
-            const tenant = await pool.connect(origin, finalConfigs.connectOptions)
+            const db = finalConfigs.getDBName(req);
+            const tenant = await pool.connect(db)
             Object.assign(req, {tenant})
             return next();
         } catch (e) {
